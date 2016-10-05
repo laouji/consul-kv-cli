@@ -20,6 +20,9 @@ func init() {
 		"put": func() (cli.Command, error) {
 			return &putCommand{UI: ui}, nil
 		},
+		"delete": func() (cli.Command, error) {
+			return &deleteCommand{UI: ui}, nil
+		},
 	}
 }
 
@@ -40,16 +43,33 @@ type putCommand struct {
 	UI cli.Ui
 }
 
+type deleteCommand struct {
+	UI cli.Ui
+}
+
 func (c *putCommand) Synopsis() string {
 	return "Stash the value of stdout of a command in consul kv store"
+}
+
+func (c *deleteCommand) Synopsis() string {
+	return "Delete a key with suffix specified"
 }
 
 func (c *putCommand) Help() string {
 	helpText := `
 Usage: consul-kv-cli put <key-suffix> arg ...
 
-	Executes the subcommand passed via arg (with all following arguments and passes its stdout
+	Executes the subcommand passed via arg (with all following arguments) and passes its stdout
 	(preserving formatting and linebreaks) to consul's kv store on the local node
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *deleteCommand) Help() string {
+	helpText := `
+Usage: consul-kv-cli delete <key-suffix>
+
+	Deletes key with suffix specified
 `
 	return strings.TrimSpace(helpText)
 }
@@ -117,6 +137,25 @@ func (c *putCommand) Run(args []string) int {
 	return 0
 }
 
+func (c *deleteCommand) Run(args []string) int {
+	if len(args) < 1 {
+		c.UI.Error("A key suffix must be specified")
+		c.UI.Error("")
+		c.UI.Error(c.Help())
+		return 1
+	}
+	keySuffix := args[0]
+
+	nodeName, err := nodeName()
+	err = delKey(fmt.Sprintf("%s/%s", nodeName, keySuffix))
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	return 0
+}
+
 func setKey(keyName string, bytes []byte) error {
 	size := len(bytes)
 
@@ -133,6 +172,25 @@ func setKey(keyName string, bytes []byte) error {
 		"PUT",
 		fmt.Sprintf("http://localhost:8500/v1/kv/%s", keyName),
 		strings.NewReader(keyValue),
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func delKey(keyName string) error {
+	client := &http.Client{}
+	req, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("http://localhost:8500/v1/kv/%s", keyName),
+		nil,
 	)
 	if err != nil {
 		return err
