@@ -170,7 +170,7 @@ func setKey(keyName string, bytes []byte) error {
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"PUT",
-		fmt.Sprintf("http://localhost:8500/v1/kv/%s", keyName),
+		fmt.Sprintf("http://127.0.0.1:8500/v1/kv/%s", keyName),
 		strings.NewReader(keyValue),
 	)
 	if err != nil {
@@ -189,7 +189,7 @@ func delKey(keyName string) error {
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"DELETE",
-		fmt.Sprintf("http://localhost:8500/v1/kv/%s", keyName),
+		fmt.Sprintf("http://127.0.0.1:8500/v1/kv/%s", keyName),
 		nil,
 	)
 	if err != nil {
@@ -212,7 +212,7 @@ type consulAgentSelf struct {
 
 func nodeName() (string, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://localhost:8500/v1/agent/self", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1:8500/v1/agent/self", nil)
 	if err != nil {
 		return "", err
 	}
